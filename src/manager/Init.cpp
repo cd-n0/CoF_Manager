@@ -129,6 +129,7 @@ void LoadPlugins()
 			mod->pszName = _strdup(file.cFileName);
 			mod->bInited = false;
 			GetProcAddress(mod->pInit, hModule, "Init");
+			GetProcAddress(mod->pDeinit, hModule, "Deinit");
 			GetProcAddress(mod->pPluginInfo, hModule, "GetPluginInfo");
 			GetProcAddress(mod->pGetGameVars, hModule, "GetGameVars");
 
@@ -162,6 +163,7 @@ void UnloadPlugins() {
 
 	for (auto it = gCofPlugins.begin(); it != gCofPlugins.end(); ) {
 		auto m = *it;
+		if (m->pDeinit) m->pDeinit(); /* If we have a deinitialization part of the plugin run it */
 		pEngine->Con_Printf("Attempting to unload %s\n", m->pszName);
 		HMODULE hModule = GetModuleHandleA(m->pszName);
 		if (hModule && FreeLibrary(hModule)) {

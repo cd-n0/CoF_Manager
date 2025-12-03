@@ -44,6 +44,7 @@ GLOBAL unsigned int gGUISize;
 struct cof_module_t
 {
 	pfnInit_t pInit;
+	pfnDenit_t pDeinit;
 	pfnPluginInfo_t pPluginInfo;
 	pfnGetGameVars_t pGetGameVars;
 	const char *pszName;

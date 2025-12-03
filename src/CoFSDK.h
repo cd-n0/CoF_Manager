@@ -32,6 +32,7 @@ struct cof_data_t
 };
 
 using pfnInit_t = bool(*)(HMODULE hManager, int nVerMajor, int nVerMinor);
+using pfnDenit_t = bool(*)(void);
 using pfnPluginInfo_t = void(*)(plugin_info_t **info);
 using pfnGetGameVars_t = void(*)(cof_data_t *cofdata);
 
