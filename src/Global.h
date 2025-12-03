@@ -4,7 +4,7 @@
 #define EXPORT extern "C" __declspec(dllexport)
 
 #define COFMGR_VERSION_MAJOR 0
-#define COFMGR_VERSION_MINOR 1
+#define COFMGR_VERSION_MINOR 2
 
 GLOBAL HMODULE ghInstance;
 
