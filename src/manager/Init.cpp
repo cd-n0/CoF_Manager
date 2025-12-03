@@ -11,7 +11,7 @@ void GetProcAddress(T &pVar, HMODULE hModule, LPCSTR lpProcName)
 
 void CreateCoFDataStructure()
 {
-	gCoFData.version = 1;
+	gCoFData.version = 2;
 
 	gCoFData.pcl_enginefuncs = pEngine;
 	gCoFData.pcl_funcs = pClient;
@@ -25,7 +25,7 @@ void CreateCoFDataStructure()
 	gCoFData.gGlobals = gGlobals;
 
 	gCoFData.pcls = gpcls;
-	gCoFData.psvc = nullptr;
+	gCoFData.psvc = gpsvc;
 }
 
 void InitMainStructs()
@@ -38,7 +38,7 @@ void InitMainStructs()
 	gclmove = (playermove_t *)Transpose(gHLBase, 0x0107F7A0);
 	gsv_player = (edict_t **)Transpose(gHLBase, 0x0080E07C);
 	gpcls = (client_static_t *)Transpose(gHLBase, 0x010CF280);
-	gpsvc = nullptr;
+	gpsvc = (server_static_t*)Transpose(gHLBase, 0x0081F320);
 
 	memcpy(&Client, pClient, sizeof(cldll_func_t));
 
@@ -50,9 +50,9 @@ void InitAdditionalStructs()
 	gGlobals = (globalvars_t **)Transpose(gModBase, 0x002196B0);
 }
 
-void InitModules()
+void InitPlugins()
 {
-	for (auto &&m : gCofModules)
+	for (auto &&m : gCofPlugins)
 	{
 		if (!m->pInit)
 		{
@@ -96,20 +96,10 @@ void ManagerFrame(double time)
 	Client.pHudFrame(time);
 }
 
-void ManagerInitialize(double time)
-{
-	pClient->pHudFrame = ManagerFrame;
-
-	FindModule("client.dll", gCLBase, gCLEnd, gCLSize);
-	FindModule("hl.dll", gModBase, gModEnd, gModSize);
-
-	InitAdditionalStructs();
-	CreateCoFDataStructure();
-	InitModules();
-}
-
 void LoadPlugins()
 {
+	pEngine->Con_Printf("Loading plugins\n");
+
 	char szPluginsDir[MAX_PATH];
 	char szPluginsTmp[MAX_PATH];
 
@@ -142,15 +132,60 @@ void LoadPlugins()
 			GetProcAddress(mod->pPluginInfo, hModule, "GetPluginInfo");
 			GetProcAddress(mod->pGetGameVars, hModule, "GetGameVars");
 
-			gCofModules.push_back(mod);
+			pEngine->Con_Printf("Loaded plugin %s\n", mod->pszName);
+			gCofPlugins.push_back(mod);
 		} while (FindNextFileA(hFile, &file) != 0);
 
 		FindClose(hFile);
 	}
+
+
+	InitPlugins();
+}
+
+void ManagerInitialize(double time)
+{
+	pClient->pHudFrame = ManagerFrame;
+
+
+	FindModule("client.dll", gCLBase, gCLEnd, gCLSize);
+	FindModule("hl.dll", gModBase, gModEnd, gModSize);
+
+	InitAdditionalStructs();
+	CreateCoFDataStructure();
+
+	LoadPlugins();
+}
+
+void UnloadPlugins() {
+	pEngine->Con_Printf("Unloading plugins\n");
+
+	for (auto it = gCofPlugins.begin(); it != gCofPlugins.end(); ) {
+		auto m = *it;
+		pEngine->Con_Printf("Attempting to unload %s\n", m->pszName);
+		HMODULE hModule = GetModuleHandleA(m->pszName);
+		if (hModule && FreeLibrary(hModule)) {
+			pEngine->Con_Printf("%s unloaded\n", m->pszName);
+			free((void*)m->pszName);
+			it = gCofPlugins.erase(it);
+		}
+		else {
+			pEngine->Con_Printf("Failed unloading %s\n", m->pszName);
+			++it;
+		}
+	}
+}
+
+
+void ReloadPlugins() {
+	UnloadPlugins();
+	LoadPlugins();
 }
 
 void InitManager()
 {
 	InitMainStructs();
-	LoadPlugins();
+	pEngine->pfnAddCommand("cm_reload_plugins", ReloadPlugins);
+	pEngine->pfnAddCommand("cm_unload_plugins", UnloadPlugins);
+	pEngine->pfnAddCommand("cm_load_plugins",   LoadPlugins);
 }

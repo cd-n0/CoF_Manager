@@ -43,14 +43,13 @@ GLOBAL unsigned int gGUISize;
 
 struct cof_module_t
 {
-	const char *pszName;
-	bool bInited;
-
 	pfnInit_t pInit;
 	pfnPluginInfo_t pPluginInfo;
 	pfnGetGameVars_t pGetGameVars;
+	const char *pszName;
+	bool bInited;
 };
 
-GLOBAL std::vector<cof_module_t *> gCofModules;
+GLOBAL std::vector<cof_module_t *> gCofPlugins;
 
 GLOBAL cof_data_t gCoFData;
